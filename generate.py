@@ -2,6 +2,7 @@ import torch
 import torchvision
 import os
 import argparse
+import time
 
 
 from model import Generator
@@ -42,6 +43,7 @@ if __name__ == '__main__':
     print('Start Generating')
     os.makedirs('samples', exist_ok=True)
 
+    start = time.time()
     n_samples = 0
     with torch.no_grad():
         while n_samples<10000:
@@ -52,6 +54,4 @@ if __name__ == '__main__':
                 if n_samples<10000:
                     torchvision.utils.save_image(x[k:k+1], os.path.join('samples', f'{n_samples}.png'))         
                     n_samples += 1
-
-
-    
+    print (time.time() - start)

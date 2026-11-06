@@ -1,0 +1,8 @@
+# Environment
+.venv
+__pycache__/
+
+# Data
+samples/
+data/
+*.png
