@@ -57,9 +57,8 @@ def save_models(G, D, folder):
     torch.save(D.state_dict(), os.path.join(folder,'D.pth'))
 
 
-def load_model(G, folder, name, device):
-    filename = f'{name}.pth'
-    ckpt_path = os.path.join(folder, filename)
+def load_model(G, folder, device, name='G.pth'):
+    ckpt_path = os.path.join(folder, name)
     ckpt = torch.load(ckpt_path, map_location=device)
     G.load_state_dict({k.replace('module.', ''): v for k, v in ckpt.items()})
     return G
