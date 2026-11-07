@@ -6,7 +6,7 @@ from torchvision import datasets, transforms
 import torch.nn as nn
 import torch.optim as optim
 from model import Generator, Discriminator
-from utils import D_train, G_train, save_models
+from utils import D_train, G_train, save_models, G_train_obrs
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train GAN on MNIST.')
@@ -14,6 +14,9 @@ if __name__ == '__main__':
     parser.add_argument("--lr", type=float, default=0.0002, help="Learning rate.")
     parser.add_argument("--batch_size", type=int, default=64, help="Size of mini-batches for SGD.")
     parser.add_argument("--gpus", type=int, default=-1, help="Number of GPUs to use (-1 for all available).")
+    parser.add_argument("--obrs", action='store_true', help="Use OBRS for generator training.")
+    parser.add_argument("--budget", type=float, default=2.0, help="Budget for OBRS (only used if --obrs is set).")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility.")
     args = parser.parse_args()
 
     to_download=False
@@ -96,5 +99,16 @@ if __name__ == '__main__':
 
         if epoch % 10 == 0:
             save_models(G, D, 'checkpoints')
+
+    if args.obrs:
+        print('Training with OBRS:')
+        for epoch in range(1, n_epoch + 1):
+            for batch_idx, (x, _) in enumerate(train_loader):
+                x = x.view(-1, mnist_dim).to(device)
+                D_train(x, G, D, D_optimizer, criterion, device)
+                G_train_obrs(x, G, D, G_optimizer, args.budget, device)
+
+            if epoch % 10 == 0:
+                save_models(G, D, 'checkpoints')
 
     print('Training done.')

@@ -5,4 +5,8 @@ __pycache__/
 # Data
 samples/
 data/
-*.pnggen_log.json
+outputs/
+*.png
+*.csv
+gen_log.json
+
