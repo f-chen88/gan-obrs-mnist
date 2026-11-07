@@ -57,8 +57,30 @@ def save_models(G, D, folder):
     torch.save(D.state_dict(), os.path.join(folder,'D.pth'))
 
 
-def load_model(G, folder, device):
-    ckpt_path = os.path.join(folder,'G.pth')
+def load_model(G, folder, name, device):
+    filename = f'{name}.pth'
+    ckpt_path = os.path.join(folder, filename)
     ckpt = torch.load(ckpt_path, map_location=device)
     G.load_state_dict({k.replace('module.', ''): v for k, v in ckpt.items()})
     return G
+
+def search_optimal_threshold(likelihood_ratios, budget = 2.0, precision = 1e-5):
+    """
+    Perform a dichotomic search to find the optimal threshold for OBRS.
+    """
+    low = 1e-10
+    high = 1e10
+    optimal_threshold = low + high / 2
+    def loss_function(threshold):
+        acceptance_ratios = likelihood_ratios * threshold
+        acceptance_ratios = torch.clamp(acceptance_ratios, max=1.0)
+        return torch.mean(acceptance_ratios) - 1 / budget
+    loss = loss_function(optimal_threshold)
+    while abs(loss) >= precision:
+        if loss > precision:
+            high = optimal_threshold
+        elif loss < -precision:
+            low = optimal_threshold
+        optimal_threshold = (low + high) / 2
+        loss = loss_function(optimal_threshold)
+    return optimal_threshold
