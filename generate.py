@@ -7,6 +7,7 @@ import time
 
 
 from model import Generator, Discriminator
+from d_models import build_D
 from utils import load_model
 import obrs
 from obrs import calibrate, density_ratio, find_threshold
@@ -16,7 +17,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate MNIST samples (OBRS and/or DOT).')
     parser.add_argument("--batch_size", type=int, default=2048,
                       help="The batch size to use for generation.")
-    parser.add_argument("--K", type=float, default=2.0,
+    parser.add_argument("--K", type=float, default=1.0,
                       help="Rejection budget: average number of draws per kept sample (1 = no rejection).")
     parser.add_argument("--rule", choices=['obrs', 'threshold'], default='obrs',
                       help="obrs: accept with prob min(c_K r, 1) (optimal). "
@@ -26,6 +27,8 @@ if __name__ == '__main__':
                            "empty = raw D/(1-D).")
     parser.add_argument("--G_name", type=str, default='G.pth',
                       help="Generator checkpoint in checkpoints/.")
+    parser.add_argument("--D_arch", choices=['mlp', 'cnn'], default='mlp',
+                      help="Architecture of the discriminator checkpoint (see d_models.py).")
     parser.add_argument("--D_name", type=str, default='D_ft1.pth',
                       help="Discriminator checkpoint in checkpoints/.")
     parser.add_argument("--dot_steps", type=int, default=0,
@@ -36,6 +39,10 @@ if __name__ == '__main__':
                       help="Lipschitz constant of D o G for DOT (default: estimated).")
     parser.add_argument("--dot_naive", action='store_true',
                       help="Ablation: only climb D(G(z)), without the transport cost.")
+    parser.add_argument("--save_range", choices=['raw', '01'], default='01',
+                      help="raw: save G's tanh output as in the starter code (negative pixels -> black). "
+                           "01: map [-1,1] -> [0,1] with (x+1)/2 before saving (the inverse of the training "
+                           "normalisation). Only affects the saved PNGs, never what D sees.")
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
 
@@ -64,9 +71,11 @@ if __name__ == '__main__':
 
     use_rejection = args.K > 1
     use_dot = args.dot_steps > 0
+    if use_dot and args.D_arch != 'mlp':
+        raise SystemExit('DOT is implemented for the MLP discriminator only.')
     D = None
     if use_rejection or use_dot:
-        D = Discriminator(mnist_dim).to(device)
+        D = build_D(args.D_arch).to(device)
         D = load_model(D, 'checkpoints', device, name=args.D_name)
         D.eval()
 
@@ -127,6 +136,8 @@ if __name__ == '__main__':
 
         with torch.no_grad():
             x = G(z).reshape(-1, 28, 28)
+        if args.save_range == '01':
+            x = (x + 1) / 2
         for k in range(x.shape[0]):
             if n_samples < 10000:
                 torchvision.utils.save_image(x[k:k+1], os.path.join('samples', f'{n_samples}.png'))
@@ -143,7 +154,7 @@ if __name__ == '__main__':
         json.dump({'G_name': args.G_name, 'D_name': args.D_name if D is not None else '',
                    'rule': args.rule if use_rejection else 'none', 'K': args.K,
                    'c_K': c if c != float('inf') else None, 'tau': tau,
-                   'mean_r': mean_r, 'calib_a': calib_a, 'dot_steps': args.dot_steps, 'seed': args.seed,
+                   'mean_r': mean_r, 'calib_a': calib_a, 'D_arch': args.D_arch, 'save_range': args.save_range, 'dot_steps': args.dot_steps, 'seed': args.seed,
                    'n_drawn': n_drawn, 'n_accepted': n_accepted,
                    'accept_rate': round(accept_rate, 4),
                    'gen_time_s': round(total_time, 2), 'calib_time_s': round(calib_time, 2)},

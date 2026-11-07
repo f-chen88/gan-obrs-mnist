@@ -171,7 +171,7 @@ if __name__ == '__main__':
     # Generation info written by generate.py (acceptance rate, time, ...)
     if os.path.exists('gen_log.json') and os.path.abspath(args.samples) == os.path.abspath('samples'):
         log = json.load(open('gen_log.json'))
-        for key in ['rule', 'K', 'accept_rate', 'gen_time_s', 'calib_time_s', 'mean_r', 'calib_a',
+        for key in ['rule', 'K', 'accept_rate', 'gen_time_s', 'calib_time_s', 'mean_r', 'calib_a', 'D_arch', 'save_range',
                     'dot_steps', 'seed', 'G_name', 'D_name']:
             res[key] = log.get(key)
 

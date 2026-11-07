@@ -13,6 +13,7 @@ import torch
 import torchvision
 
 from model import Generator, Discriminator
+from d_models import build_D
 from utils import load_model
 from obrs import calibrate, density_ratio
 
@@ -22,13 +23,15 @@ if __name__ == '__main__':
     parser.add_argument('--n', type=int, default=4096)
     parser.add_argument('--G_name', default='G.pth')
     parser.add_argument('--D_name', default='D_ft.pth')
+    parser.add_argument('--D_arch', choices=['mlp', 'cnn'], default='mlp')
+    parser.add_argument('--prefix', default='obrs', help='output file prefix in figures/')
     parser.add_argument('--seed', type=int, default=0)
     args = parser.parse_args()
 
     torch.manual_seed(args.seed)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     G = load_model(Generator(784).to(device), 'checkpoints', device, name=args.G_name).eval()
-    D = load_model(Discriminator(784).to(device), 'checkpoints', device, name=args.D_name).eval()
+    D = load_model(build_D(args.D_arch).to(device), 'checkpoints', device, name=args.D_name).eval()
 
     c, _ = calibrate(G, D, args.K, device)
     with torch.no_grad():
@@ -41,7 +44,7 @@ if __name__ == '__main__':
           f'lowest a(x) shown: {a[order[:64]].max():.3g}')
 
     os.makedirs('figures', exist_ok=True)
-    for name, imgs in [('obrs_rejected', rejected), ('obrs_accepted', kept)]:
+    for name, imgs in [(f'{args.prefix}_rejected', rejected), (f'{args.prefix}_accepted', kept)]:
         imgs = (imgs.view(-1, 1, 28, 28) + 1) / 2          # [-1,1] -> [0,1] for display
         torchvision.utils.save_image(imgs, f'figures/{name}.png', nrow=8, padding=2, pad_value=1)
-    print('Saved figures/obrs_rejected.png and figures/obrs_accepted.png')
+    print(f'Saved figures/{args.prefix}_rejected.png and figures/{args.prefix}_accepted.png')
