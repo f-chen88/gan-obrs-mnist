@@ -20,7 +20,7 @@ def D_train(x, G, D, D_optimizer, criterion, device):
 
     # train discriminator on fake
     z = torch.randn(x.shape[0], 100, device=device)
-    x_fake = G(z)
+    x_fake = G(z).detach()
     y_fake = torch.zeros(x.shape[0], 1, device=device)
 
     D_output = D(x_fake)

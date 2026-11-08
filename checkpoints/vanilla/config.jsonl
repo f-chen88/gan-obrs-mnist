@@ -1,0 +1,1 @@
+{"epochs": 300, "lrG": 0.0001, "lrD": 2.5e-05, "batch_size": 64, "gpus": 1, "seed": 42}
