@@ -17,7 +17,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate MNIST samples (OBRS and/or DOT).')
     parser.add_argument("--batch_size", type=int, default=2048,
                       help="The batch size to use for generation.")
-    parser.add_argument("--K", type=float, default=1.0,
+    parser.add_argument("--K", type=float, default=10.0,
                       help="Rejection budget: average number of draws per kept sample (1 = no rejection).")
     parser.add_argument("--rule", choices=['obrs', 'threshold'], default='obrs',
                       help="obrs: accept with prob min(c_K r, 1) (optimal). "
@@ -39,10 +39,14 @@ if __name__ == '__main__':
                       help="Lipschitz constant of D o G for DOT (default: estimated).")
     parser.add_argument("--dot_naive", action='store_true',
                       help="Ablation: only climb D(G(z)), without the transport cost.")
-    parser.add_argument("--save_range", choices=['raw', '01'], default='01',
+    parser.add_argument("--save_range", choices=['raw', '01', '01t'], default='raw',
                       help="raw: save G's tanh output as in the starter code (negative pixels -> black). "
                            "01: map [-1,1] -> [0,1] with (x+1)/2 before saving (the inverse of the training "
-                           "normalisation). Only affects the saved PNGs, never what D sees.")
+                           "normalisation). 01t: as 01, then v -> max(0, (v - t)/(1 - t)) with t = --bg_thresh, "
+                           "which turns the faint grey haze of the background back to black. "
+                           "Only affects the saved PNGs, never what D sees.")
+    parser.add_argument("--bg_thresh", type=float, default=0.05,
+                      help="Background threshold t for --save_range 01t.")
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
 
@@ -84,6 +88,8 @@ if __name__ == '__main__':
         obrs.CALIB = json.load(open(args.calib))
         calib_a = obrs.CALIB['a']
         print(f"Using calibrated ratio: a={obrs.CALIB['a']:.4f}, b={obrs.CALIB['b']:.4f}")
+
+    print('Model loaded.')
 
     t0 = time.time()
     c, tau, mean_r = float('inf'), 0.0, None
@@ -134,8 +140,10 @@ if __name__ == '__main__':
 
         with torch.no_grad():
             x = G(z).reshape(-1, 28, 28)
-        if args.save_range == '01':
+        if args.save_range in ('01', '01t'):
             x = (x + 1) / 2
+        if args.save_range == '01t':
+            x = ((x - args.bg_thresh) / (1 - args.bg_thresh)).clamp(min=0)
         for k in range(x.shape[0]):
             if n_samples < 10000:
                 torchvision.utils.save_image(x[k:k+1], os.path.join('samples', f'{n_samples}.png'))
@@ -152,7 +160,8 @@ if __name__ == '__main__':
         json.dump({'G_name': args.G_name, 'D_name': args.D_name if D is not None else '',
                    'rule': args.rule if use_rejection else 'none', 'K': args.K,
                    'c_K': c if c != float('inf') else None, 'tau': tau,
-                   'mean_r': mean_r, 'calib_a': calib_a, 'D_arch': args.D_arch, 'save_range': args.save_range, 'dot_steps': args.dot_steps, 'seed': args.seed,
+                   'mean_r': mean_r, 'calib_a': calib_a, 'D_arch': args.D_arch, 'save_range': args.save_range,
+                   'bg_thresh': args.bg_thresh if args.save_range == '01t' else None, 'dot_steps': args.dot_steps, 'seed': args.seed,
                    'n_drawn': n_drawn, 'n_accepted': n_accepted,
                    'accept_rate': round(accept_rate, 4),
                    'gen_time_s': round(total_time, 2), 'calib_time_s': round(calib_time, 2)},
