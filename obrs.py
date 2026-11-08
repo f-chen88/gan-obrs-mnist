@@ -11,20 +11,20 @@ import torch
 CALIB = None   # set to {'a': ..., 'b': ...} to use a calibrated ratio (see calibrate_D.py)
 
 
-@torch.no_grad()
-def density_ratio(D, x, eps=1e-6):
+def density_ratio(D, x, eps=1e-6, no_grad = True):
     """r(x) = p(x)/p_hat(x).
 
     With the BCE loss, the optimal discriminator is D*(x) = p/(p + p_hat),
     so p/p_hat = D/(1 - D). Clamping avoids division by zero when D saturates.
     If CALIB is set, use the Platt-calibrated logit: r = exp(a * logit + b).
     """
-    if CALIB is not None:
-        from dot import d_logit
-        s = CALIB['a'] * d_logit(D, x) + CALIB['b']
-        return torch.exp(s.clamp(-30, 30))
-    d = D(x).squeeze(1).clamp(eps, 1 - eps)
-    return d / (1 - d)
+    with torch.no_grad() if no_grad else torch.enable_grad():
+        if CALIB is not None:
+            from dot import d_logit
+            s = CALIB['a'] * d_logit(D, x) + CALIB['b']
+            return torch.exp(s.clamp(-30, 30))
+        d = D(x).squeeze(1).clamp(eps, 1 - eps)
+        return d / (1 - d)
 
 
 def find_c(r, K, tol=1e-4, n_iter=100):

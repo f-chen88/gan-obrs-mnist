@@ -1,7 +1,10 @@
 import torch
 import os
 
+from obrs import find_c, density_ratio
 
+def f(u, device):
+    return u * torch.log(u) - (1+u) * torch.log((1+u)) + 2 * torch.log(torch.tensor([2])).to(device)
 
 def D_train(x, G, D, D_optimizer, criterion, device):
     #=======================Train the discriminator=======================#
@@ -50,11 +53,31 @@ def G_train(x, G, D, G_optimizer, criterion, device):
         
     return G_loss.data.item()
 
+def G_train_obrs(x, G, D, G_optimizer, budget, device, tolerance = 1e-4, n_iter = 100):
+    #=======================Train the generator=======================#
+    G.zero_grad()
+
+    z = torch.randn(x.shape[0], 100, device=device)
+    y = torch.ones(x.shape[0], 1, device=device)
+                 
+    G_output = G(z)
+    r = density_ratio(D, G_output, no_grad=False)
+    M = r.max().item()
+    c = find_c(r.detach() / M, budget, tol=tolerance, n_iter=n_iter)
+    acceptance_ratios = torch.clamp(c * r.detach() / M, max=1.0)
+    G_loss = torch.mean(acceptance_ratios * budget * f(r / (acceptance_ratios * budget), device))
+
+    # gradient backprop & optimize ONLY G's parameters
+    G_loss.backward()
+    G_optimizer.step()
+        
+    return G_loss.data.item(), r, acceptance_ratios
 
 
-def save_models(G, D, folder):
-    torch.save(G.state_dict(), os.path.join(folder,'G.pth'))
-    torch.save(D.state_dict(), os.path.join(folder,'D.pth'))
+
+def save_models(G, D, folder, G_name = 'G.pth', D_name = 'D.pth'):
+    torch.save(G.state_dict(), os.path.join(folder,G_name))
+    torch.save(D.state_dict(), os.path.join(folder,D_name))
 
 
 def load_model(G, folder, device, name='G.pth'):
@@ -62,3 +85,24 @@ def load_model(G, folder, device, name='G.pth'):
     ckpt = torch.load(ckpt_path, map_location=device)
     G.load_state_dict({k.replace('module.', ''): v for k, v in ckpt.items()})
     return G
+
+def search_optimal_threshold(likelihood_ratios, budget = 2.0, precision = 1e-5):
+    """
+    Perform a dichotomic search to find the optimal threshold for OBRS.
+    """
+    low = 1e-10
+    high = 1e10
+    optimal_threshold = low + high / 2
+    def loss_function(threshold):
+        acceptance_ratios = likelihood_ratios * threshold
+        acceptance_ratios = torch.clamp(acceptance_ratios, max=1.0)
+        return torch.mean(acceptance_ratios) - 1 / budget
+    loss = loss_function(optimal_threshold)
+    while abs(loss) >= precision:
+        if loss > precision:
+            high = optimal_threshold
+        elif loss < -precision:
+            low = optimal_threshold
+        optimal_threshold = (low + high) / 2
+        loss = loss_function(optimal_threshold)
+    return optimal_threshold

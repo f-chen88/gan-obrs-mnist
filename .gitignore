@@ -5,4 +5,12 @@ __pycache__/
 # Data
 samples/
 data/
-*.pnggen_log.json
+outputs/
+*.png
+*.csv
+gen_log.json
+
+# Other
+*.pth
+evaluate_inceptionv3.py
+test_classifier.py

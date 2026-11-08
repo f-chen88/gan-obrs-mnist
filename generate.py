@@ -85,8 +85,6 @@ if __name__ == '__main__':
         calib_a = obrs.CALIB['a']
         print(f"Using calibrated ratio: a={obrs.CALIB['a']:.4f}, b={obrs.CALIB['b']:.4f}")
 
-    print('Model loaded.')
-
     t0 = time.time()
     c, tau, mean_r = float('inf'), 0.0, None
     if use_rejection:
