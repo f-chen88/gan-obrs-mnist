@@ -76,13 +76,6 @@ if __name__ == '__main__':
         calib_a = obrs.CALIB['a']
         print(f"Using calibrated ratio: a={obrs.CALIB['a']:.4f}, b={obrs.CALIB['b']:.4f}")
 
-    if args.method in ['obrs']:
-        discriminator = Discriminator(d_input_dim = mnist_dim).to(device)
-        discriminator = load_model(discriminator , args.model_path, 'D', device)
-        if torch.cuda.device_count() > 1:
-            model = torch.nn.DataParallel(discriminator)
-    print('Model loaded.')
-
     t0 = time.time()
     c, tau, mean_r = float('inf'), 0.0, None
     if use_rejection:

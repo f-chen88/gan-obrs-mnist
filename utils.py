@@ -3,8 +3,8 @@ import os
 
 from obrs import find_c, density_ratio
 
-def critic(u):
-    return u * torch.log(u) - (1+u) * torch.log(1+u)
+def f(u):
+    return u * torch.log(u) - (1+u) * torch.log((1+u))
 
 def D_train(x, G, D, D_optimizer, criterion, device):
     #=======================Train the discriminator=======================#
@@ -61,16 +61,17 @@ def G_train_obrs(x, G, D, G_optimizer, budget, device, tolerance = 1e-4, n_iter 
     y = torch.ones(x.shape[0], 1, device=device)
                  
     G_output = G(z)
-    r = density_ratio(D, G_output)
-    c = find_c(r, budget, tol=tolerance, n_iter=n_iter)
-    acceptance_ratios = torch.clamp(c * r, max=1.0)
-    G_loss = torch.mean(acceptance_ratios* budget * critic(r / (acceptance_ratios * budget)))
+    r = density_ratio(D, G_output, no_grad=False)
+    M = r.max().item()
+    c = find_c(r.detach() / M, budget, tol=tolerance, n_iter=n_iter)
+    acceptance_ratios = torch.clamp(c * r.detach() / M, max=1.0)
+    G_loss = torch.mean(acceptance_ratios * budget * f(r / (acceptance_ratios * budget)))
 
     # gradient backprop & optimize ONLY G's parameters
     G_loss.backward()
     G_optimizer.step()
         
-    return G_loss.data.item()
+    return G_loss.data.item(), r, acceptance_ratios
 
 
 
