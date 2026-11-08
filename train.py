@@ -96,7 +96,7 @@ if __name__ == '__main__':
     # Loss and optimizers
     criterion = nn.BCELoss()
     G_optimizer = optim.Adam(G.parameters(), lr=args.lr)
-    D_optimizer = optim.Adam(D.parameters(), lr=args.lr/4 )
+    D_optimizer = optim.Adam(D.parameters(), lr=args.lr )
 
 
     print('Start training:')
@@ -134,12 +134,6 @@ if __name__ == '__main__':
                     print(f"Generator loss: {G_loss:.2f}")
                     D_loss = 0
                     G_loss = 0
-                    print(f"mean r: {r.mean().item()}")
-                    print(f"median r: {r.median().item()}")
-                    print(f"quantile 0.99: {r.quantile(0.99)}")
-                    print(f"quantile 0.01: {r.quantile(0.01)}")
-                    #print(r)
-                    #print(acceptance_ratios)
 
             if epoch % 2 == 0:
                 save_models(G, D, args.checkpoints_path)
