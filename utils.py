@@ -3,8 +3,8 @@ import os
 
 from obrs import find_c, density_ratio
 
-def f(u):
-    return u * torch.log(u) - (1+u) * torch.log((1+u))
+def f(u, device):
+    return u * torch.log(u) - (1+u) * torch.log((1+u)) + 2 * torch.log(torch.tensor([2])).to(device)
 
 def D_train(x, G, D, D_optimizer, criterion, device):
     #=======================Train the discriminator=======================#
@@ -65,7 +65,7 @@ def G_train_obrs(x, G, D, G_optimizer, budget, device, tolerance = 1e-4, n_iter 
     M = r.max().item()
     c = find_c(r.detach() / M, budget, tol=tolerance, n_iter=n_iter)
     acceptance_ratios = torch.clamp(c * r.detach() / M, max=1.0)
-    G_loss = torch.mean(acceptance_ratios * budget * f(r / (acceptance_ratios * budget)))
+    G_loss = torch.mean(acceptance_ratios * budget * f(r / (acceptance_ratios * budget), device))
 
     # gradient backprop & optimize ONLY G's parameters
     G_loss.backward()
@@ -75,9 +75,9 @@ def G_train_obrs(x, G, D, G_optimizer, budget, device, tolerance = 1e-4, n_iter 
 
 
 
-def save_models(G, D, folder):
-    torch.save(G.state_dict(), os.path.join(folder,'G.pth'))
-    torch.save(D.state_dict(), os.path.join(folder,'D.pth'))
+def save_models(G, D, folder, G_name = 'G.pth', D_name = 'D.pth'):
+    torch.save(G.state_dict(), os.path.join(folder,G_name))
+    torch.save(D.state_dict(), os.path.join(folder,D_name))
 
 
 def load_model(G, folder, device, name='G.pth'):
