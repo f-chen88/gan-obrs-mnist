@@ -17,7 +17,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate MNIST samples (OBRS and/or DOT).')
     parser.add_argument("--batch_size", type=int, default=2048,
                       help="The batch size to use for generation.")
-    parser.add_argument("--K", type=float, default=10.0,
+    parser.add_argument("--K", type=float, default=2.0,
                       help="Rejection budget: average number of draws per kept sample (1 = no rejection).")
     parser.add_argument("--rule", choices=['obrs', 'threshold'], default='obrs',
                       help="obrs: accept with prob min(c_K r, 1) (optimal). "
@@ -45,7 +45,7 @@ if __name__ == '__main__':
                            "normalisation). 01t: as 01, then v -> max(0, (v - t)/(1 - t)) with t = --bg_thresh, "
                            "which turns the faint grey haze of the background back to black. "
                            "Only affects the saved PNGs, never what D sees.")
-    parser.add_argument("--bg_thresh", type=float, default=0.05,
+    parser.add_argument("--bg_thresh", type=float, default=0.2,
                       help="Background threshold t for --save_range 01t.")
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
