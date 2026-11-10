@@ -1,0 +1,8 @@
+# Last search (SSP Cloud): EMA of G and other GAN losses, starter MLP D, winning learning rates (lrB),
+# 300 epochs, snapshots every 25, seed 42. Comparable runs without EMA: van_lrB, obrs_K2_lrB_sig, obrs_K5_lrB_sig (search 1).
+van_lrB_ema          | --mode vanilla --lrG 1e-4 --lrD 2.5e-5 --ema 0.999
+obrs_K2_lrB_sig_ema  | --mode obrs --K_train 2 --ratio sigmoid --lrG 1e-4 --lrD 2.5e-5 --ema 0.999
+van_hinge_lrB_ema    | --mode vanilla --loss hinge --lrG 1e-4 --lrD 2.5e-5 --ema 0.999
+van_ls_lrB_ema       | --mode vanilla --loss ls --lrG 1e-4 --lrD 2.5e-5 --ema 0.999
+obrs_K5_lrB_sig_ema  | --mode obrs --K_train 5 --ratio sigmoid --lrG 1e-4 --lrD 2.5e-5 --ema 0.999
+van_hinge_lrB        | --mode vanilla --loss hinge --lrG 1e-4 --lrD 2.5e-5

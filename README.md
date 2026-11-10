@@ -1,81 +1,55 @@
-# DataLabAssignement2
+# DataLab Assignment 2, Group 15: Optimal Budgeted Rejection Sampling for a fixed MLP GAN
 
-## Using GPUs with MesoNet
+Franck CHEN, Olaf KWIATKOWSKI, Aissata GUINDO.
 
-### 1. Access MesoNet
-To use the provided GPUs, you must first:
-- Create a MesoNet account and request access to the project.
-- Once accepted, add your SSH key to MesoNet for secure access. Follow the instructions [here](https://www.mesonet.fr/documentation/user-documentation/code_form/juliet/connexion).
+The generator architecture is the starter one (`model.py`) and is never changed. We improve its samples at
+sampling time with **Optimal Budgeted Rejection Sampling** (OBRS, Verine et al., AISTATS 2024): a sample `x` is
+kept with probability `min(c_K r(x), 1)`, where `r = D / (1 - D)` estimates the density ratio `p / p_hat` and
+`c_K` is set by bisection so that one sample in `K` is kept. We then train the generator with the OBRS loss,
+a spectrally normalised MLP discriminator and an EMA of the generator's weights.
 
-### 2. Set Up Your Environment
-On Juliet (MesoNet's cluster), you need to:
-
-1. Create a virtual environment for Python:
-   ```bash
-   python -m venv venv
-   ```
-
-2. Activate the environment:
-   ```bash
-   source venv/bin/activate
-   ```
-
-3. Install the required dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-### 3. Run Training or Generation
-- Use the provided shell scripts (`scripts/train.sh` or `scripts/generate.sh`) to launch jobs.
-- These scripts will automatically activate the virtual environment (`venv`).
-- If you don't use Juliet cluster, please provide a data_path argument for the training scripts. Otherwise, everything should be automated.
-
-### 4. Hardware Compatibility
-The code is compatible with:
-- **NVIDIA GPUs (CUDA)**
-- **Apple Silicon (MPS, for M1/M2/M3/M4 chips)**
-- **CPU-only mode** (not recommended for performance)
-
-We recommend using CUDA (for NVIDIA GPUs) or MPS (for Apple Silicon).
-
-### 5. Slurm Resources
-- If you need help with Slurm (MesoNet's job scheduler), there will be a Slurm lecture on 29/10/2025 or refer to the official documentation: [Slurm Documentation](https://slurm.schedmd.com/documentation.html).
-
-### 6. Example Commands
-To submit a job to MesoNet:
-```bash
-# Make the script executable
-chmod +x scripts/train.sh
-
-# Submit the job to Slurm
-scripts/train.sh
-```
-## train.py
-This script performs adversarial training for a GAN. Before running it, ensure the `DATA` variable in `scripts/train.sh` points to your dataset directory. If left unchanged, the script will create a default `data` folder in the repository root. If you use Juliet, no changes are required—the default path is already configured. You can adjust the learning rate, number of epochs, and batch size directly in `scripts/train.sh`.
-
-## generate.py
-Use the file *generate.py* to generate 10000 samples of MNIST in the folder samples. You can launch this script on juliet with `scripts/generate.sh`
-
-Example:
-  > python3 generate.py --bacth_size 64
-
-or 
+## Generation (evaluated by the platform)
 
 ```bash
-# Make the script executable
-chmod +x scripts/generate.sh
-
-# Submit the job to Slurm
-scripts/generate.sh
+pip install -r requirements.txt
+python generate.py --batch_size 256      # writes 10,000 PNGs to samples/ and gen_log.json
 ```
 
-## requirements.txt
-Among the good pratice of datascience, we encourage you to use conda or virtualenv to create python environment. 
-To test your code on our platform, you are required to update the *requirements.txt*, with the different librairies you might use. 
-When your code will be test, we will execute: 
-  > pip install -r requirements.txt
+Default configuration (final submission): `checkpoints/search/obrs_K5_mlpsn_lrA_ema_s43/G_ep250.pth` and the
+discriminator trained with it (`D_ep250.pth`, spectrally normalised MLP), OBRS with `K = 50`, images written as
+`max((x+1)/2, 0) ** 1.25`. Useful options: `--K 1` (no rejection), `--rule threshold` (deterministic top-1/K
+ablation), `--G_name G.pth --D_name D_ft1.pth --D_arch mlp --save_range raw --K 10` (OBRS on the frozen
+100-epoch baseline, push 1).
 
+## Files
 
-## Checkpoints
-Push the minimal amount of models in the folder *checkpoints*.
+| File | Role |
+|---|---|
+| `generate.py` | sampling with OBRS (run by the platform) |
+| `obrs.py` | density ratio, bisection for `c_K`, calibration, threshold ablation |
+| `model.py`, `utils.py`, `train.py` | starter generator, discriminator and training |
+| `d_models.py` | discriminators: starter MLP, MLP with spectral normalisation, CNNs |
+| `train_search.py` | training with the vanilla or OBRS loss, spectral norm, EMA, snapshots every 25 epochs |
+| `finetune_D.py`, `train_ratio_D.py` | retrain a discriminator against a frozen generator (ratio estimators of the report) |
+| `evaluate.py` | local FID (Inception), precision, recall, digit balance `TV_cls` |
+| `samples_vs_K.py` | grid of accepted samples and digit frequencies against `K` (report, Fig. 2) |
+| `search/` | Slurm pipeline of the training search: configurations, training, snapshot evaluation, generation tuning, summary |
+| `scripts/` | Slurm launchers for training and generation on Juliet |
 
+## Reproducing the training of the final model
+
+```bash
+python train_search.py --mode obrs --K_train 5 --ratio logit --D_arch mlp_sn \
+    --lrG 2e-4 --lrD 2e-4 --beta1 0.5 --ema 0.999 --seed 43 --out search/obrs_K5_mlpsn_lrA_ema_s43
+```
+
+300 epochs, batch 64, snapshot of epoch 250 used. The full search is launched with `bash search/launch.sh`
+(configurations in `search/configs*.txt`).
+
+## Results
+
+| Submission | Platform FID | Local FID |
+|---|---|---|
+| Baseline (starter, 100 epochs) | 29.82 | 29.56 |
+| OBRS on the frozen baseline, `K = 10` | 25.18 | 24.75 |
+| OBRS-trained G, spectral norm, EMA, OBRS `K = 50` (final) | see report | 5.97 |

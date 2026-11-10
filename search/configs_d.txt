@@ -1,0 +1,13 @@
+# Discriminator search: name | train_search.py options (300 epochs, snapshot every 25, batch 64, seed 42)
+# D: mlp (starter), mlp_sn (starter + spectral norm), cnn (2 conv + dropout), cnn_sn (DCGAN-style, spectral norm)
+# beta1 0.5 = DCGAN Adam setting. TTUR = slower G, faster D.
+van_mlp_lrA_b05      | --mode vanilla --D_arch mlp    --lrG 2e-4 --lrD 2e-4 --beta1 0.5
+van_mlpsn_lrA_b05    | --mode vanilla --D_arch mlp_sn --lrG 2e-4 --lrD 2e-4 --beta1 0.5
+van_cnn_lrA_b05      | --mode vanilla --D_arch cnn    --lrG 2e-4 --lrD 2e-4 --beta1 0.5
+van_cnnsn_lrA_b05    | --mode vanilla --D_arch cnn_sn --lrG 2e-4 --lrD 2e-4 --beta1 0.5
+van_cnnsn_lrC_b05    | --mode vanilla --D_arch cnn_sn --lrG 1e-4 --lrD 1e-4 --beta1 0.5
+van_cnnsn_ttur_b05   | --mode vanilla --D_arch cnn_sn --lrG 1e-4 --lrD 4e-4 --beta1 0.5
+obrs_K5_cnnsn_lrA    | --mode obrs --K_train 5 --ratio logit --D_arch cnn_sn --lrG 2e-4 --lrD 2e-4 --beta1 0.5
+obrs_K2_cnnsn_lrA    | --mode obrs --K_train 2 --ratio logit --D_arch cnn_sn --lrG 2e-4 --lrD 2e-4 --beta1 0.5
+obrs_K5_cnnsn_ttur   | --mode obrs --K_train 5 --ratio logit --D_arch cnn_sn --lrG 1e-4 --lrD 4e-4 --beta1 0.5
+obrs_K5_mlpsn_lrA    | --mode obrs --K_train 5 --ratio logit --D_arch mlp_sn --lrG 2e-4 --lrD 2e-4 --beta1 0.5

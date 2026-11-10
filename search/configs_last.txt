@@ -1,0 +1,4 @@
+# Last SSP runs (night of 9-10 Nov), around the winner van_hinge_lrB_ema (8.19 at epoch 250):
+van_hinge_lrB_ema_s43    | --mode vanilla --loss hinge --lrG 1e-4 --lrD 2.5e-5 --ema 0.999 --seed 43
+van_hinge_mlpsn_lrB_ema  | --mode vanilla --loss hinge --D_arch mlp_sn --lrG 1e-4 --lrD 2.5e-5 --ema 0.999
+van_hinge_lrB_ema9999    | --mode vanilla --loss hinge --lrG 1e-4 --lrD 2.5e-5 --ema 0.9999

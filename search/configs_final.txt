@@ -1,0 +1,7 @@
+# Final search (Juliet): spectral normalisation on the MLP D and EMA of G, 300 epochs, snapshots every 25.
+obrs_K5_mlpsn_lrA_ema   | --mode obrs --K_train 5 --ratio logit --D_arch mlp_sn --lrG 2e-4 --lrD 2e-4 --beta1 0.5 --ema 0.999
+obrs_K2_mlpsn_lrA_ema   | --mode obrs --K_train 2 --ratio logit --D_arch mlp_sn --lrG 2e-4 --lrD 2e-4 --beta1 0.5 --ema 0.999
+van_mlpsn_lrA_ema       | --mode vanilla --D_arch mlp_sn --lrG 2e-4 --lrD 2e-4 --beta1 0.5 --ema 0.999
+van_hinge_mlpsn_lrA_ema | --mode vanilla --loss hinge --D_arch mlp_sn --lrG 2e-4 --lrD 2e-4 --beta1 0.5 --ema 0.999
+obrs_K5_mlpsn_lrA_ema_s43 | --mode obrs --K_train 5 --ratio logit --D_arch mlp_sn --lrG 2e-4 --lrD 2e-4 --beta1 0.5 --ema 0.999 --seed 43
+obrs_K5_mlpsn_lrB_ema   | --mode obrs --K_train 5 --ratio logit --D_arch mlp_sn --lrG 1e-4 --lrD 2.5e-5 --ema 0.999

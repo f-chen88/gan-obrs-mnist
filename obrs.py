@@ -8,23 +8,15 @@ Acceptance rule (Theorem 3.1):  a(x) = min(c_K * r(x), 1)
 import torch
 
 
-CALIB = None   # set to {'a': ..., 'b': ...} to use a calibrated ratio (see calibrate_D.py)
-
-
-def density_ratio(D, x, eps=1e-6, no_grad = True):
+@torch.no_grad()
+def density_ratio(D, x, eps=1e-6):
     """r(x) = p(x)/p_hat(x).
 
     With the BCE loss, the optimal discriminator is D*(x) = p/(p + p_hat),
     so p/p_hat = D/(1 - D). Clamping avoids division by zero when D saturates.
-    If CALIB is set, use the Platt-calibrated logit: r = exp(a * logit + b).
     """
-    with torch.no_grad() if no_grad else torch.enable_grad():
-        if CALIB is not None:
-            from dot import d_logit
-            s = CALIB['a'] * d_logit(D, x) + CALIB['b']
-            return torch.exp(s.clamp(-30, 30))
-        d = D(x).squeeze(1).clamp(eps, 1 - eps)
-        return d / (1 - d)
+    d = D(x).squeeze(1).clamp(eps, 1 - eps)
+    return d / (1 - d)
 
 
 def find_c(r, K, tol=1e-4, n_iter=100):
@@ -46,8 +38,7 @@ def find_c(r, K, tol=1e-4, n_iter=100):
 
 
 def find_threshold(r, K):
-    """Ablation ('hard threshold'): keep only the top 1/K fraction of samples by r.
-    Same budget as OBRS, but deterministic: a(x) = 1[r(x) >= tau_K]."""
+    """Ablation: keep only the top 1/K fraction of samples by r (deterministic rule, same budget)."""
     if K <= 1:
         return 0.0
     return torch.quantile(r.float(), 1.0 - 1.0 / K).item()
@@ -62,17 +53,3 @@ def calibrate(G, D, K, device, n=50_000, batch_size=2048, latent_dim=100):
         rs.append(density_ratio(D, G(z)).cpu())
     r = torch.cat(rs)
     return find_c(r, K), r
-
-
-@torch.no_grad()
-def obrs_sample(G, D, c, device, batch_size=2048, latent_dim=100):
-    """Yield (accepted_batch, n_drawn) until the caller stops iterating."""
-    while True:
-        z = torch.randn(batch_size, latent_dim, device=device)
-        x = G(z)
-        if c == float('inf'):
-            yield x, batch_size
-            continue
-        a = torch.clamp(c * density_ratio(D, x), max=1.0)
-        keep = torch.rand_like(a) < a
-        yield x[keep], batch_size

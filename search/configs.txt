@@ -1,0 +1,20 @@
+# name | train_search.py options (all: 300 epochs, snapshot every 25, batch 64, seed 42 unless stated)
+# lr pairs: A = 2e-4/2e-4 (starter baseline), B = 1e-4/2.5e-5 (teammate), C = 1e-4/1e-4, D = 2e-4/5e-5
+van_lrA            | --mode vanilla --lrG 2e-4 --lrD 2e-4
+van_lrB            | --mode vanilla --lrG 1e-4 --lrD 2.5e-5
+van_lrC            | --mode vanilla --lrG 1e-4 --lrD 1e-4
+van_lrD            | --mode vanilla --lrG 2e-4 --lrD 5e-5
+obrs_K2_lrB_sig    | --mode obrs --K_train 2  --lrG 1e-4 --lrD 2.5e-5 --ratio sigmoid
+obrs_K5_lrB_sig    | --mode obrs --K_train 5  --lrG 1e-4 --lrD 2.5e-5 --ratio sigmoid
+obrs_K10_lrB_sig   | --mode obrs --K_train 10 --lrG 1e-4 --lrD 2.5e-5 --ratio sigmoid
+obrs_K2_lrB_logit  | --mode obrs --K_train 2  --lrG 1e-4 --lrD 2.5e-5 --ratio logit
+obrs_K5_lrB_logit  | --mode obrs --K_train 5  --lrG 1e-4 --lrD 2.5e-5 --ratio logit
+obrs_K10_lrB_logit | --mode obrs --K_train 10 --lrG 1e-4 --lrD 2.5e-5 --ratio logit
+obrs_K2_lrA_logit  | --mode obrs --K_train 2  --lrG 2e-4 --lrD 2e-4 --ratio logit
+obrs_K5_lrA_logit  | --mode obrs --K_train 5  --lrG 2e-4 --lrD 2e-4 --ratio logit
+obrs_K2_lrC_logit  | --mode obrs --K_train 2  --lrG 1e-4 --lrD 1e-4 --ratio logit
+obrs_K5_lrC_logit  | --mode obrs --K_train 5  --lrG 1e-4 --lrD 1e-4 --ratio logit
+van_lrB_bs128      | --mode vanilla --lrG 1e-4 --lrD 2.5e-5 --batch_size 128
+obrs_K5_lrB_logit_bs128 | --mode obrs --K_train 5 --lrG 1e-4 --lrD 2.5e-5 --ratio logit --batch_size 128
+van_lrB_seed43     | --mode vanilla --lrG 1e-4 --lrD 2.5e-5 --seed 43
+obrs_K5_lrB_logit_seed43 | --mode obrs --K_train 5 --lrG 1e-4 --lrD 2.5e-5 --ratio logit --seed 43
